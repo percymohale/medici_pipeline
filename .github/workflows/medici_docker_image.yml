@@ -67,11 +67,11 @@ jobs:
             aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin your_ecr_registry_url
             
             # Pull the latest image
-            docker pull 471112967520.dkr.ecr.eu-west-1.amazonaws.com/medici_erc_prod/my-app-image:latest
+            docker pull 471112967520.dkr.ecr.eu-west-1.amazonaws.com/medici_erc_prod:latest
             
             # Stop and remove the old container
             docker stop medici_web_server || true
             docker rm medici_web_server || true
             
             # Run a new container
-            docker run -d --name medici_web_server -p 80:80 471112967520.dkr.ecr.eu-west-1.amazonaws.com/medici_erc_prod/my-app-image:latest
+            docker run -d --name medici_web_server -p 80:80 471112967520.dkr.ecr.eu-west-1.amazonaws.com/medici_erc_prod:latest

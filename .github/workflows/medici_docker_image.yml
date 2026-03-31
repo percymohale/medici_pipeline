@@ -1,0 +1,77 @@
+name: Deploy Docker NGIX Web Server Image to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ue-west-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: medici_erc_dev 
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REPOSITORY .
+          docker tag $REPOSITORY:latest $REGISTRY/$REPOSITORY:$IMAGE_TAG
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+  manual-approval:
+    name: Manual Approval
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: success()
+
+    permissions:
+      issues: write
+
+    steps:
+      - name: await manual approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: 
+          approvers:
+          minimum-approvers: 1
+          issue-tittle: "Manual Approval for AWS Deployment"
+          issue-body: "Please approve to allow AWS Deployment"
+
+  deploy:
+    needs: manual-approval
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull and run the latest image on EC2
+        uses: appleboy/ssh-action@v0.1.3 # A marketplace action for SSH
+        with:
+          host: ${{ secrets.EC2_HOST }} # EC2 public IP stored as a secret
+          username: ec2-user # Or 'ubuntu' depending on AMI
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          script: |
+            # Login to ECR on the EC2 instance (requires ECR permissions on EC2 IAM role)
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin your_ecr_registry_url
+            
+            # Pull the latest image
+            docker pull 767397841216.dkr.ecr.eu-west-1.amazonaws.com/medici_erc_dev/my-app-image:latest
+            
+            # Stop and remove the old container
+            docker stop my-app-container || true
+            docker rm my-app-container || true
+            
+            # Run a new container
+            docker run -d --name my-app-container -p 80:80 your_ecr_registry_url/my-app-image:latest

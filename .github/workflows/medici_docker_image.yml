@@ -26,7 +26,7 @@ jobs:
       - name: Build, tag, and push image to ECR
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: medici_erc_dev 
+          REPOSITORY: medici_erc_prod 
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $REPOSITORY .
@@ -67,7 +67,7 @@ jobs:
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin your_ecr_registry_url
             
             # Pull the latest image
-            docker pull 767397841216.dkr.ecr.eu-west-1.amazonaws.com/medici_erc_dev/my-app-image:latest
+            docker pull 767397841216.dkr.ecr.eu-west-1.amazonaws.com/medici_erc_prod/my-app-image:latest
             
             # Stop and remove the old container
             docker stop my-app-container || true

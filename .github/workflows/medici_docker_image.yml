@@ -46,8 +46,8 @@ jobs:
       - name: await manual approval
         uses: trstringer/manual-approval@v1
         with:
-          secret: 
-          approvers:
+          secret: ${{ github.TOKEN }}
+          approvers: percymohale
           minimum-approvers: 1
           issue-tittle: "Manual Approval for AWS Deployment"
           issue-body: "Please approve to allow AWS Deployment"
